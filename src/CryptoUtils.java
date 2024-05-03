@@ -1,4 +1,9 @@
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.SignatureException;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -69,4 +74,13 @@ public class CryptoUtils {
 		return textoClaro;
 	}
 
+	public byte[] firmar(PrivateKey llave, String mensaje) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException{
+		
+		Signature signature = Signature.getInstance("SHA256withRSA");
+		signature.initSign(llave);
+		byte[] mensajeBytes = mensaje.getBytes();
+		signature.update(mensajeBytes);
+		byte[] firma = signature.sign();
+		return firma;
+	}
 }
