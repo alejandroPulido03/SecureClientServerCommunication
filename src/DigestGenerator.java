@@ -2,7 +2,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class DigestGenerator {
-    
+
     public byte[] sha256(String message) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(message.getBytes());
