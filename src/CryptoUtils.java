@@ -38,11 +38,11 @@ public class CryptoUtils {
 		return textoClaro;
 	}
 
-    public static byte[] cifrarAsimetrico(Key llave, String algoritmo, String texto) {
+    public static byte[] cifrarAsimetrico(Key llave, String texto) {
 		byte[] textoCifrado;
 		
 		try {
-			Cipher cifrador = Cipher.getInstance(algoritmo);
+			Cipher cifrador = Cipher.getInstance("RSA");
 			byte[] textoClaro = texto.getBytes();
 			
 			cifrador.init(Cipher.ENCRYPT_MODE, llave);
@@ -59,7 +59,7 @@ public class CryptoUtils {
 		byte[] textoClaro;
 		
 		try {
-			Cipher cifrador = Cipher.getInstance(algoritmo);
+			Cipher cifrador = Cipher.getInstance("RSA");
 			cifrador.init(Cipher.DECRYPT_MODE, llave);
 			textoClaro = cifrador.doFinal(texto);
 		} catch (Exception e) {
