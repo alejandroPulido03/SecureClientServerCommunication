@@ -23,4 +23,12 @@ public class KeyManager {
         secureRandom.nextBytes(ivBytes); // Llena el arreglo con datos aleatorios seguros
         return ivBytes;
     }
+
+    public static byte[] generateChallenge() {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] challengeBytes = new byte[1024]; // Crea un arreglo de bytes del tamaño especificado
+        secureRandom.nextBytes(challengeBytes); // Llena el arreglo con datos aleatorios seguros
+        return challengeBytes;
+    }
 }
+

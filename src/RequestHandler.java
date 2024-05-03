@@ -1,10 +1,14 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.security.Key;
 
 public class RequestHandler extends Thread {
     private Socket socket;
+
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
 
@@ -19,9 +23,8 @@ public class RequestHandler extends Thread {
 
     private void openCommunicationProtocol() throws IOException {
         this.dataOutputStream.writeUTF("SECURE INIT");
-        int challenge = 123456789;
-        this.dataOutputStream.writeInt(challenge);
-        System.out.println("Challenge sent: " + challenge);
+        byte[] challenge = KeyManager.generateChallenge();
+        this.dataOutputStream.write(challenge);
         int cipheredChallenge = this.dataInputStream.readInt();
         System.out.println("Ciphered challenge received: " + cipheredChallenge);
         this.dataOutputStream.writeUTF("OK");
