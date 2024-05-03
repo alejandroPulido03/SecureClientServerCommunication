@@ -5,7 +5,7 @@ import javax.crypto.SecretKey;
 
 public class CryptoUtils {
 
-    private static final String PADDING = "AES/ECB/PKCS5Padding";
+    private static final String PADDING = "AES/CBC/PKCS5Padding";
     
     public static byte[] cifrarSimetrico(SecretKey llave, String texto) {
 		byte[] textoCifrado;
