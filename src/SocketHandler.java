@@ -25,10 +25,10 @@ public class SocketHandler extends Thread {
         try {
             int challenge = this.dataInputStream.readInt();
             System.out.println("Challenge received: " + challenge);
-            
-            int cipheredChallenge = challenge; // TODO cipher challenge
 
-            this.dataOutputStream.writeInt(cipheredChallenge);
+            byte[] cipheredChallenge = KeyManager.generateChallenge(); // TODO cipher challenge
+
+            this.dataOutputStream.write(cipheredChallenge);
         } catch (IOException e) {
             throw new IOException("Invalid challenge integer" + e.getMessage());
         }
