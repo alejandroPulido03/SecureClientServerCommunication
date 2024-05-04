@@ -1,8 +1,11 @@
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 
 public class Channel {
 
-    public void initServer(int port) {
+    public void initServer(int port) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException {
         try {
             Server server = new Server(port);
             server.initServer();
@@ -16,7 +19,7 @@ public class Channel {
         client.handleRequest(host, port);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InvalidKeyException, NumberFormatException, NoSuchAlgorithmException, SignatureException {
         Channel channel = new Channel();
         if (args[0].equals("server")) {
             channel.initServer(Integer.parseInt(args[1]));
