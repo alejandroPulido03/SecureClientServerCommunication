@@ -19,12 +19,15 @@ public class Channel {
         client.handleRequest(host, port);
     }
 
-    public static void main(String[] args) throws InvalidKeyException, NumberFormatException, NoSuchAlgorithmException, SignatureException {
+    public static void main(String[] args)
+            throws InvalidKeyException, NumberFormatException, NoSuchAlgorithmException, SignatureException {
         Channel channel = new Channel();
         if (args[0].equals("server")) {
             channel.initServer(Integer.parseInt(args[1]));
         } else if (args[0].equals("client")) {
-            channel.handleRequest(args[1], Integer.parseInt(args[2]));
+            for (int i = 0; i < 1; i++) {
+                channel.handleRequest(args[1], Integer.parseInt(args[2]));
+            }
         } else {
             System.out.println("Invalid arguments");
         }
