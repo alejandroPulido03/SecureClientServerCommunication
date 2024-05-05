@@ -4,21 +4,17 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
+
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+
 import java.security.SignatureException;
+import java.util.Arrays;
 
 public class SocketHandler extends Thread {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private PrivateKey privateKey;
-    public static PublicKey publicKey;
-    private KeyPairGenerator keyGen;
-    private KeyPair pair;
+    
     private static final BigInteger G = new BigInteger("2");
 
     private static final BigInteger P = new BigInteger(
@@ -30,13 +26,14 @@ public class SocketHandler extends Thread {
     private byte[] password;
     private byte[] iv;
 
-    public SocketHandler(Socket accepted_socket, PrivateKey privateKey) throws IOException, NoSuchAlgorithmException {
+    public SocketHandler(Socket accepted_socket) throws IOException, NoSuchAlgorithmException {
         this.socket = accepted_socket;
-        this.privateKey = privateKey;
         this.dataInputStream = new DataInputStream(accepted_socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(accepted_socket.getOutputStream());
         this.user = "gaviotica911";
         this.password = DigestGenerator.sha256("NosVamosASacar5*1234");
+
+        
     }
 
     private void openCommunicationProtocol()
@@ -48,26 +45,29 @@ public class SocketHandler extends Thread {
             throw new IOException("Invalid secure init message");
         }
         System.out.println("Secure init message received: " + secure_init_message);
-        keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
-        pair = keyGen.generateKeyPair();
-        publicKey = pair.getPublic();
-        privateKey = pair.getPrivate();
-        byte[] challenge = new byte[1024];
+        
+        
+        byte[] challenge = new byte[256];
+
         this.dataInputStream.read(challenge);
-        System.out.println("Challenge recibido");
-        byte[] retoFirmado = CryptoUtils.firmar(privateKey, challenge);
+        System.out.println("challenge recibido: " + Arrays.toString(challenge));
+
+        byte[] retoFirmado = CryptoUtils.firmar(KeyManager.privateK, challenge);
+        System.out.println("Firma generada: " + Arrays.toString(retoFirmado));
         this.dataOutputStream.write(retoFirmado);
+        System.out.println(Arrays.toString(KeyManager.publicK.getEncoded()) )  ;
         System.out.println("Reto firmado enviado");
+
+        String response = this.dataInputStream.readUTF();
+        if (!response.equals("OK")) {
+             throw new IOException("Invalid response");
+             }
+
+
         /*
+         *
          * 
          * 
-         * 
-         * 
-         * String response = this.dataInputStream.readUTF();
-         * if (!response.equals("OK")) {
-         * throw new IOException("Invalid response");
-         * }
          * 
          * shareDiffieHellmanValues();
          * 
@@ -160,7 +160,7 @@ public class SocketHandler extends Thread {
         System.arraycopy(pByte, 0, conc, gByte.length, pByte.length);
         System.arraycopy(gXByte, 0, conc, gByte.length + pByte.length, gXByte.length);
 
-        byte[] cyphered_dh_values = CryptoUtils.firmar(privateKey, conc);
+        byte[] cyphered_dh_values = CryptoUtils.firmar(KeyManager.privateK, conc);
 
         this.dataOutputStream.write(cyphered_dh_values);
         System.out.println("Valores DH firmados enviados");
@@ -174,19 +174,16 @@ public class SocketHandler extends Thread {
         z = gY.modPow(x, P);
 
     }
-
+/*
     private void pong() throws IOException {
         this.dataOutputStream.writeUTF("pong");
         System.out.println("Client says: " + this.dataInputStream.readUTF());
     }
+     */
 
-    public PrivateKey getPrivateKey() {
-        return privateKey;
-    }
+   
 
-    public PublicKey getPublicKey() {
-        return publicKey;
-    }
+   
 
     @Override
     public void run() {

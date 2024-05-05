@@ -94,10 +94,10 @@ public class CryptoUtils {
 	public static boolean verificarFirma(PublicKey llavePublica, byte[] mensaje, byte[] firma)
             throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         
-        Signature signature = Signature.getInstance("SHA256withRSA");
-        signature.initVerify(llavePublica);
-        signature.update(mensaje);
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(llavePublica);
+        verifier.update(mensaje);
         
-        return signature.verify(firma);
+        return verifier.verify(firma);
     }
 }

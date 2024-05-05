@@ -5,14 +5,15 @@ import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
+import java.util.Arrays;
 
 //CLIENTE
 public class RequestHandler extends Thread {
     private Socket socket;
-
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
     private byte[] challenge;
+    
 
     public RequestHandler(String host, int port) throws IOException {
         this.socket = new Socket(host, port);
@@ -32,26 +33,28 @@ public class RequestHandler extends Thread {
         challenge = KeyManager.generateChallenge();
 
         this.dataOutputStream.write(challenge);
-        System.out.println("Challenge enviado");
+
+        System.out.println("Datos a firmar: " + Arrays.toString(challenge));
         byte[] Rprima = new byte[256];
         this.dataInputStream.read(Rprima);
-        System.out.println("Rprima recibido");
+       
+        System.out.println("Firma a verificar: " + Arrays.toString(Rprima));
+        System.out.println(Arrays.toString(KeyManager.publicK.getEncoded()) )  ;
+
+        boolean revisoR = CryptoUtils.verificarFirma(KeyManager.publicK,challenge, Rprima);
+        System.out.println("Resultado de verificación: " + revisoR);
+        if (revisoR) {
+             this.dataOutputStream.writeUTF("OK");
+            System.out.println("Firma correcta");
+            } else {
+            this.dataOutputStream.writeUTF("ERROR");
+         this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
+            System.out.println("Error en la firma");
+            
+            }
+
         /*
          * 
-         * 
-         * 
-         * boolean revisoR = CryptoUtils.verificarFirma(SocketHandler.publicKey, Rprima,
-         * challenge);
-         * 
-         * if (revisoR) {
-         * this.dataOutputStream.writeUTF("OK");
-         * System.out.println("Firma correcta");
-         * } else {
-         * this.dataOutputStream.writeUTF("ERROR");
-         * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
-         * System.out.println("Error en la firma");
-         * 
-         * }
          * 
          * byte[] gByte = this.dataInputStream.readAllBytes();
          * System.out.println("g recibido");
@@ -169,20 +172,21 @@ public class RequestHandler extends Thread {
          */
 
     }
-
+/*
     private void ping() throws IOException {
         this.dataOutputStream.writeUTF("ping");
         System.out.println("Server says: " + this.dataInputStream.readUTF());
 
     }
+     */
 
     @Override
     public void run() {
         try {
-            // ping();
+            
             openCommunicationProtocol();
         } catch (Exception e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
 

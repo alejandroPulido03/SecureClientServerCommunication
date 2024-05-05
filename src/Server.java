@@ -1,5 +1,4 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,10 +10,9 @@ import java.security.SignatureException;
 //SERVIDOR
 public class Server {
 
-    private DataInputStream dataInputStream;
-    private DataOutputStream dataOutputStream;
+    
     private ServerSocket serverSocket;
-    private PrivateKey privateKey;
+
     private SocketHandler socketHandler;
 
     public Server(int port) throws IOException, NoSuchAlgorithmException {
@@ -31,7 +29,7 @@ public class Server {
         System.out.println("Press Ctrl+C to stop the server");
         while (true) {
             Socket socket = this.serverSocket.accept();
-            socketHandler = new SocketHandler(socket, this.privateKey);
+            socketHandler = new SocketHandler(socket);
             socketHandler.start();
 
         }
