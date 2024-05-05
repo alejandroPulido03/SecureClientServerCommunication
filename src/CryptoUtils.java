@@ -14,40 +14,46 @@ public class CryptoUtils {
 
     private static final String PADDING = "AES/CBC/PKCS5Padding";
 	
+	
+	
     
-    public static byte[] cifrarSimetrico(SecretKey llave, String texto, byte[] iv) {
-        try {
-            Cipher cifrador = Cipher.getInstance(PADDING);
-            byte[] textoClaro = texto.getBytes();
-           
-            
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
-
-            cifrador.init(Cipher.ENCRYPT_MODE, llave, ivSpec);
-            byte[] textoCifrado = cifrador.doFinal(textoClaro);
-            byte[] textoCifradoConIv = new byte[iv.length + textoCifrado.length];
-            System.arraycopy(iv, 0, textoCifradoConIv, 0, iv.length);
-            System.arraycopy(textoCifrado, 0, textoCifradoConIv, iv.length, textoCifrado.length);
-
-            return textoCifradoConIv;
-        } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
-            return null;
-        }
-    }
-
-    public static byte[] descifrarSimetrico(SecretKey llave, byte[] texto) {
-		byte[] textoClaro;
-		
+	public static byte[] cifrarSimetrico(SecretKey llave, String texto, byte[] iv) {
 		try {
 			Cipher cifrador = Cipher.getInstance(PADDING);
-			cifrador.init(Cipher.DECRYPT_MODE, llave);
-			textoClaro = cifrador.doFinal(texto);
+			byte[] textoClaro = texto.getBytes();
+			IvParameterSpec ivSpec = new IvParameterSpec(iv);
+	
+			cifrador.init(Cipher.ENCRYPT_MODE, llave, ivSpec);
+			byte[] textoCifrado = cifrador.doFinal(textoClaro);
+			byte[] textoCifradoConIv = new byte[iv.length + textoCifrado.length];
+			System.arraycopy(iv, 0, textoCifradoConIv, 0, iv.length);
+			System.arraycopy(textoCifrado, 0, textoCifradoConIv, iv.length, textoCifrado.length);
+	
+			return textoCifradoConIv;
 		} catch (Exception e) {
-			System.out.println("Exception: " + e.getMessage());
+			e.printStackTrace(); // Más informativo que solo mostrar el mensaje
 			return null;
 		}
-		return textoClaro;
+	}
+
+    public static byte[] descifrarSimetrico(SecretKey llave, byte[] textoCifradoConIv, byte[] iv) {
+		try {
+			// Asumiendo que el tamaño del IV es el mismo que el bloque de cifrado (usualmente 16 bytes para AES)
+			
+			System.arraycopy(textoCifradoConIv, 0, iv, 0, iv.length);
+	
+			// Extraer el texto cifrado real, omitiendo el IV al principio
+			byte[] textoCifrado = new byte[textoCifradoConIv.length - iv.length];
+			System.arraycopy(textoCifradoConIv, iv.length, textoCifrado, 0, textoCifrado.length);
+	
+			Cipher cifrador = Cipher.getInstance(PADDING);
+			IvParameterSpec ivSpec = new IvParameterSpec(iv);
+			cifrador.init(Cipher.DECRYPT_MODE, llave, ivSpec);
+			return cifrador.doFinal(textoCifrado);
+		} catch (Exception e) {
+			e.printStackTrace(); // Más informativo que solo mostrar el mensaje
+			return null;
+		}
 	}
 
     public static byte[] cifrarAsimetrico(Key llave, String texto) {
