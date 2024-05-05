@@ -22,6 +22,7 @@ public class SocketHandler extends Thread {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
+    long startTime, endTime;
 
     private static final BigInteger G = new BigInteger("2");
 
@@ -81,8 +82,11 @@ public class SocketHandler extends Thread {
         this.dataInputStream.read(challenge);
         System.out.println("challenge recibido");
         generateKeyPairAndSavePublicKey("publicKey.key");
+        startTime = System.nanoTime();
         byte[] retoFirmado = CryptoUtils.firmar(privateKey, challenge);
+        endTime = System.nanoTime();
         System.out.println("Firma generada");
+        System.out.println("Tiempo generación de firma: " + (endTime - startTime)/1000000.0 + " milisegundos.");
         this.dataOutputStream.write(retoFirmado);
         this.dataOutputStream.write(privateKey.getEncoded());
         System.out.println("Reto firmado enviado");
@@ -133,10 +137,16 @@ public class SocketHandler extends Thread {
         this.dataInputStream.read(consultaDigest);
         System.out.println("Digest recibido");
 
+        startTime = System.nanoTime();
         String consulta = new String(CryptoUtils.descifrarSimetrico(K_AB1, consultaEncrypted,iv));
+        endTime = System.nanoTime();
+        System.out.println("Tiempo para decifrar consulta: " + (endTime - startTime)/1000000.0 + " milisegundos.");
+        startTime = System.nanoTime();
         byte[] verificandoConsulta = DigestGenerator.Hmac(consulta, K_AB2);
         if (Arrays.equals(verificandoConsulta, consultaDigest)) {
+            endTime = System.nanoTime();
             System.err.println("hay integridad");
+            System.out.println("Tiempo verificacion codigo de autenticacion: " + (endTime - startTime)/1000000.0 + " milisegundos.");
             int numero = Integer.parseInt(consulta);
             int resultado = numero - 1;
             String respuesta = Integer.toString(resultado);
