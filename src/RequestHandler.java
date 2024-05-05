@@ -1,11 +1,20 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 //CLIENTE
 public class RequestHandler extends Thread {
@@ -13,12 +22,28 @@ public class RequestHandler extends Thread {
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
     private byte[] challenge;
-    
 
     public RequestHandler(String host, int port) throws IOException {
         this.socket = new Socket(host, port);
         this.dataInputStream = new DataInputStream(socket.getInputStream());
         this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+    }
+
+    public static PublicKey readPublicKeyFromFile(String publicKeyFilePath) {
+        try {
+            // Lee los bytes de la clave pública desde un archivo
+            FileInputStream fis = new FileInputStream(publicKeyFilePath);
+            byte[] publicKeyBytes = fis.readAllBytes();
+            fis.close();
+
+            // Convierte los bytes a una PublicKey
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(publicKeyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            return keyFactory.generatePublic(spec);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private void openCommunicationProtocol()
@@ -34,159 +59,171 @@ public class RequestHandler extends Thread {
 
         this.dataOutputStream.write(challenge);
 
-        System.out.println("Datos a firmar: " + Arrays.toString(challenge));
+        System.out.println("frima enviada");
         byte[] Rprima = new byte[256];
+        byte[] llavePublica = new byte[2048];
         this.dataInputStream.read(Rprima);
-       
-        System.out.println("Firma a verificar: " + Arrays.toString(Rprima));
-        System.out.println(Arrays.toString(KeyManager.publicK.getEncoded()) )  ;
+        this.dataInputStream.read(llavePublica);
 
-        boolean revisoR = CryptoUtils.verificarFirma(KeyManager.publicK,challenge, Rprima);
-        System.out.println("Resultado de verificación: " + revisoR);
+        System.out.println("Firma a verificar");
+        PublicKey publicKey = readPublicKeyFromFile("publicKey.key");
+
+        boolean revisoR = CryptoUtils.verificarFirma(publicKey, challenge, Rprima);
+        System.out.println("Resultado de verificación ");
         if (revisoR) {
-             this.dataOutputStream.writeUTF("OK");
+            this.dataOutputStream.writeUTF("OK");
             System.out.println("Firma correcta");
-            } else {
+        } else {
             this.dataOutputStream.writeUTF("ERROR");
-         this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
+            this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
             System.out.println("Error en la firma");
-            
-            }
+        }
 
-        /*
-         * 
-         * 
-         * byte[] gByte = this.dataInputStream.readAllBytes();
-         * System.out.println("g recibido");
-         * byte[] pByte = this.dataInputStream.readAllBytes();
-         * System.out.println("p recibido");
-         * byte[] gXByte = this.dataInputStream.readAllBytes();
-         * System.out.println("gx recibido");
-         * byte[] iv = this.dataInputStream.readAllBytes();
-         * System.out.println("iv recibido");
-         * byte[] firmaCripto = this.dataInputStream.readAllBytes();
-         * System.out.println("Firma recibida");
-         * 
-         * int totalLength = gByte.length + pByte.length + gXByte.length;
-         * 
-         * byte[] conc = new byte[totalLength];
-         * 
-         * boolean revisoValores = CryptoUtils.verificarFirma(SocketHandler.publicKey,
-         * firmaCripto, conc);
-         * 
-         * if (revisoValores) {
-         * this.dataOutputStream.writeUTF("OK");
-         * System.out.println("Firma correcta de valores");
-         * } else {
-         * this.dataOutputStream.writeUTF("ERROR");
-         * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
-         * System.out.println("Error en la firma");
-         * 
-         * }
-         * 
-         * BigInteger g = new BigInteger(gByte);
-         * BigInteger p = new BigInteger(pByte);
-         * BigInteger x = KeyManager.generateX(p);
-         * 
-         * BigInteger gX = new BigInteger(gXByte);
-         * 
-         * BigInteger gY = g.modPow(x, p);
-         * 
-         * byte[] gYByte = gY.toByteArray();
-         * // MANDO GY ES LO ULTIMO QUE MANDA EL CLIENTE
-         * 
-         * this.dataOutputStream.write(gYByte);
-         * System.out.println("Gy enviado");
-         * 
-         * BigInteger z = gX.modPow(x, p);
-         * byte[] zBytes = z.toByteArray();
-         * // Dividir zBytes en dos partes de 256 bits
-         * byte[] keyForEncryption = Arrays.copyOfRange(zBytes, 0, 32); // Primeros 32
-         * bytes (256 bits)
-         * byte[] keyForHMAC = Arrays.copyOfRange(zBytes, 32, 64); // Últimos 32 bytes
-         * (256 bits)
-         * 
-         * // Crear las llaves para cifrado y para HMAC
-         * SecretKey K_AB1 = new SecretKeySpec(keyForEncryption, "AES");
-         * SecretKey K_AB2 = new SecretKeySpec(keyForHMAC, "HmacSHA256");
-         * 
-         * // CALC LAS LLAVES FIN PARTE 1
-         * this.dataInputStream.readUTF();
-         * this.dataOutputStream.writeUTF("CONTINUAR");
-         * System.out.println("Continuar parte 2");
-         * 
-         * Scanner scanner = new Scanner(System.in); // Crea un objeto Scanner para leer
-         * la entrada del usuario
-         * 
-         * System.out.print("Ingrese su usuario: "); // Solicita al usuario que ingrese
-         * un string
-         * String user = scanner.nextLine(); // Lee el string ingresado por el usuario
-         * 
-         * System.out.print("Ingrese su contraseña: ");
-         * String contraseña = scanner.nextLine();
-         * 
-         * scanner.close(); // Close the Scanner object to release resources
-         * 
-         * this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, user, iv));
-         * this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, contraseña,
-         * iv));
-         * System.out.println("Usuario y contraseña enviados");
-         * 
-         * String response = this.dataInputStream.readUTF();
-         * if (!response.equals("OK")) {
-         * throw new IOException("Invalid response");
-         * }
-         * 
-         * scanner = new Scanner(System.in);
-         * System.out.print("Ingrese un numero de consulta: ");
-         * String consulta = (scanner.nextLine());
-         * scanner.close();
-         * this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, consulta,
-         * iv));
-         * this.dataOutputStream.write(DigestGenerator.Hmac(consulta, K_AB2));
-         * System.out.println("Consulta enviada");
-         * 
-         * byte[] rtaEncrypted = this.dataInputStream.readAllBytes();
-         * System.out.println("Respuesta recibida");
-         * byte[] rtaDigest = this.dataInputStream.readAllBytes();
-         * System.out.println("Digest recibido");
-         * 
-         * String rta = new String(CryptoUtils.descifrarSimetrico(K_AB1, rtaEncrypted));
-         * byte[] verificandorta = DigestGenerator.Hmac(rta, K_AB2);
-         * if (Arrays.equals(verificandorta, rtaDigest)) {
-         * int numMenos1 = Integer.parseInt(rta);
-         * if (numMenos1 == Integer.parseInt(consulta) - 1) {
-         * System.out.println("La respuesta es correcta");
-         * this.dataOutputStream.writeUTF("OK. Fin");
-         * } else {
-         * this.dataOutputStream.writeUTF("ERROR");
-         * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
-         * System.out.println("rta incorrecta");
-         * }
-         * 
-         * } else {
-         * this.dataOutputStream.writeUTF("ERROR");
-         * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
-         * System.out.println("rta no integra");
-         * }
-         */
+        byte[] gByte = new byte[1];
+        this.dataInputStream.read(gByte);
+        System.out.println("g recibido");
+
+        byte[] pByte = new byte[129];
+        this.dataInputStream.read(pByte);
+        System.out.println("p recibido");
+        byte[] gXByte = new byte[129];
+        this.dataInputStream.read(gXByte);
+        System.out.println("gx recibido");
+        byte[] iv = new byte[16];
+        this.dataInputStream.read(iv);
+        System.out.println("iv recibido");
+        byte[] firmaCripto = new byte[256];
+        this.dataInputStream.read(firmaCripto);
+        System.out.println("Firma recibida");
+
+        int totalLength = gByte.length + pByte.length + gXByte.length;
+
+        byte[] conc = new byte[totalLength];
+        boolean revisoValores = CryptoUtils.verificarFirma(publicKey,  conc,firmaCripto);
+        if (revisoValores) {
+            this.dataOutputStream.writeUTF("OK");
+            System.out.println("Firma correcta de valores");
+        } else {
+            this.dataOutputStream.writeUTF("ERROR");
+            this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
+            System.out.println("Error en la firma");
+        }
+
+        BigInteger g = new BigInteger(gByte);
+        BigInteger p = new BigInteger(pByte);
+        BigInteger x = KeyManager.generateX(p);
+
+        BigInteger gX = new BigInteger(gXByte);
+
+        BigInteger gY = g.modPow(x, p);
+
+        byte[] gYByte = gY.toByteArray();
+        // MANDO GY ES LO ULTIMO QUE MANDA EL CLIENTE
+        this.dataOutputStream.write(gYByte);
+      System.out.println("Gy enviado");
+      
+
+      BigInteger z = gX.modPow(x, p);
+      byte[] zBytes = z.toByteArray();
+      // Dividir zBytes en dos partes de 256 bits
+      byte[] keyForEncryption = Arrays.copyOfRange(zBytes, 0, 32); // Primeros 32
+    
+      byte[] keyForHMAC = Arrays.copyOfRange(zBytes, 32, 64); // Últimos 32 bytes
+      
+    
+      
+      // Crear las llaves para cifrado y para HMAC
+      SecretKey K_AB1 = new SecretKeySpec(keyForEncryption, "AES");
+     SecretKey K_AB2 = new SecretKeySpec(keyForHMAC, "HmacSHA256");
+      
+      // CALC LAS LLAVES FIN PARTE 1
+      
+   
+      System.out.println("Continuar parte 2");
+
+      
+      String user = "gaviotica911"; // Lee el string ingresado por el usuario
+     
+     
+     String contraseña = "NosVamosASacar5*1234";
+
+     this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, user, iv));
+      this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, contraseña, iv));
+      System.out.println("Usuario y contraseña enviados");
+      
+      String response = this.dataInputStream.readUTF();
+      if (!response.equals("OK")) {
+     throw new IOException("Invalid response");
+     }
+     
+     
+     
 
     }
-/*
-    private void ping() throws IOException {
-        this.dataOutputStream.writeUTF("ping");
-        System.out.println("Server says: " + this.dataInputStream.readUTF());
 
-    }
+    /*
+     *
+     * 
+     * this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, user, iv));
+     * this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, contraseña,
+     * iv));
+     * System.out.println("Usuario y contraseña enviados");
+     * 
+     * String response = this.dataInputStream.readUTF();
+     * if (!response.equals("OK")) {
+     * throw new IOException("Invalid response");
+     * }
+     * 
+     * scanner = new Scanner(System.in);
+     * System.out.print("Ingrese un numero de consulta: ");
+     * String consulta = (scanner.nextLine());
+     * scanner.close();
+     * this.dataOutputStream.write(CryptoUtils.cifrarSimetrico(K_AB1, consulta,
+     * iv));
+     * this.dataOutputStream.write(DigestGenerator.Hmac(consulta, K_AB2));
+     * System.out.println("Consulta enviada");
+     * 
+     * byte[] rtaEncrypted = this.dataInputStream.readAllBytes();
+     * System.out.println("Respuesta recibida");
+     * byte[] rtaDigest = this.dataInputStream.readAllBytes();
+     * System.out.println("Digest recibido");
+     * 
+     * String rta = new String(CryptoUtils.descifrarSimetrico(K_AB1, rtaEncrypted));
+     * byte[] verificandorta = DigestGenerator.Hmac(rta, K_AB2);
+     * if (Arrays.equals(verificandorta, rtaDigest)) {
+     * int numMenos1 = Integer.parseInt(rta);
+     * if (numMenos1 == Integer.parseInt(consulta) - 1) {
+     * System.out.println("La respuesta es correcta");
+     * this.dataOutputStream.writeUTF("OK. Fin");
+     * } else {
+     * this.dataOutputStream.writeUTF("ERROR");
+     * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
+     * System.out.println("rta incorrecta");
+     * }
+     * 
+     * } else {
+     * this.dataOutputStream.writeUTF("ERROR");
+     * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
+     * System.out.println("rta no integra");
+     * }
+     */
+
+    
+    /*
+     * private void ping() throws IOException {
+     * this.dataOutputStream.writeUTF("ping");
+     * System.out.println("Server says: " + this.dataInputStream.readUTF());
+     * 
+     * }
      */
 
     @Override
     public void run() {
         try {
-            
+
             openCommunicationProtocol();
         } catch (Exception e) {
-            
+
             e.printStackTrace();
         }
 

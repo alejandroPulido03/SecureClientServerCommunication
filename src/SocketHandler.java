@@ -1,14 +1,20 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.security.InvalidKeyException;
-
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.util.Arrays;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class SocketHandler extends Thread {
     private Socket socket;
@@ -25,6 +31,33 @@ public class SocketHandler extends Thread {
     private String user;
     private byte[] password;
     private byte[] iv;
+    private static PrivateKey privateKey;
+    
+    public static void generateKeyPairAndSavePublicKey(String publicKeyFilePath) {
+        try {
+            // Genera el par de claves
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(2048);
+            KeyPair pair = keyGen.generateKeyPair();
+            PublicKey publicKey = pair.getPublic();
+            privateKey = pair.getPrivate();
+
+            // Convierte la clave pública a bytes
+            byte[] publicKeyBytes = publicKey.getEncoded();
+
+            // Escribe la clave pública en un archivo
+            try (FileOutputStream fos = new FileOutputStream(publicKeyFilePath)) {
+                fos.write(publicKeyBytes);
+                fos.flush();
+            }
+        } catch (NoSuchAlgorithmException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    
+
 
     public SocketHandler(Socket accepted_socket) throws IOException, NoSuchAlgorithmException {
         this.socket = accepted_socket;
@@ -32,6 +65,7 @@ public class SocketHandler extends Thread {
         this.dataOutputStream = new DataOutputStream(accepted_socket.getOutputStream());
         this.user = "gaviotica911";
         this.password = DigestGenerator.sha256("NosVamosASacar5*1234");
+       
 
         
     }
@@ -50,18 +84,54 @@ public class SocketHandler extends Thread {
         byte[] challenge = new byte[256];
 
         this.dataInputStream.read(challenge);
-        System.out.println("challenge recibido: " + Arrays.toString(challenge));
-
-        byte[] retoFirmado = CryptoUtils.firmar(KeyManager.privateK, challenge);
-        System.out.println("Firma generada: " + Arrays.toString(retoFirmado));
+        System.out.println("challenge recibido");
+        generateKeyPairAndSavePublicKey("publicKey.key");
+        byte[] retoFirmado = CryptoUtils.firmar(privateKey, challenge);
+        System.out.println("Firma generada");
         this.dataOutputStream.write(retoFirmado);
-        System.out.println(Arrays.toString(KeyManager.publicK.getEncoded()) )  ;
+        this.dataOutputStream.write(privateKey.getEncoded());
         System.out.println("Reto firmado enviado");
 
         String response = this.dataInputStream.readUTF();
         if (!response.equals("OK")) {
              throw new IOException("Invalid response");
              }
+        
+             shareDiffieHellmanValues();
+             byte[] zBytes = z.toByteArray();
+          // Dividir zBytes en dos partes de 256 bits
+          byte[] keyForEncryption = Arrays.copyOfRange(zBytes, 0, 32); // Primeros 32
+     
+          byte[] keyForHMAC = Arrays.copyOfRange(zBytes, 32, 64); // Últimos 32 bytes
+      
+          
+          // Crear las llaves para cifrado y para HMAC
+          SecretKey K_AB1 = new SecretKeySpec(keyForEncryption, "AES");
+          SecretKey K_AB2 = new SecretKeySpec(keyForHMAC, "HmacSHA256");
+         
+          // CALC LAS LLAVES FIN PARTE 1
+          this.dataOutputStream.writeUTF("CONTINUAR");
+
+
+          
+          byte[] userEncrypted = this.dataInputStream.readAllBytes();
+          System.out.println("Usuario recibido");
+          byte[] passwordEncrypted = this.dataInputStream.readAllBytes();
+          System.out.println("Contraseña recibida");
+          
+          String usuario = new String(CryptoUtils.descifrarSimetrico(K_AB1,
+          userEncrypted));
+          String contra = new String(CryptoUtils.descifrarSimetrico(K_AB1,
+          passwordEncrypted));
+          byte[] contraHash = DigestGenerator.sha256(contra);
+          if (usuario.equals(this.user) && Arrays.equals(contraHash, this.password)) {
+          this.dataOutputStream.writeUTF("OK");
+          System.out.println("Usuario y contraseña correctos");
+          } else {
+          this.dataOutputStream.writeUTF("ERROR");
+          this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
+          System.out.println("Usuario o contraseña incorrectos");
+          }
 
 
         /*
@@ -69,40 +139,7 @@ public class SocketHandler extends Thread {
          * 
          * 
          * 
-         * shareDiffieHellmanValues();
          * 
-         * byte[] zBytes = z.toByteArray();
-         * // Dividir zBytes en dos partes de 256 bits
-         * byte[] keyForEncryption = Arrays.copyOfRange(zBytes, 0, 32); // Primeros 32
-         * bytes (256 bits)
-         * byte[] keyForHMAC = Arrays.copyOfRange(zBytes, 32, 64); // Últimos 32 bytes
-         * (256 bits)
-         * 
-         * // Crear las llaves para cifrado y para HMAC
-         * SecretKey K_AB1 = new SecretKeySpec(keyForEncryption, "AES");
-         * SecretKey K_AB2 = new SecretKeySpec(keyForHMAC, "HmacSHA256");
-         * 
-         * // CALC LAS LLAVES FIN PARTE 1
-         * this.dataOutputStream.writeUTF("CONTINUAR");
-         * 
-         * byte[] userEncrypted = this.dataInputStream.readAllBytes();
-         * System.out.println("Usuario recibido");
-         * byte[] passwordEncrypted = this.dataInputStream.readAllBytes();
-         * System.out.println("Contraseña recibida");
-         * 
-         * String usuario = new String(CryptoUtils.descifrarSimetrico(K_AB1,
-         * userEncrypted));
-         * String contra = new String(CryptoUtils.descifrarSimetrico(K_AB1,
-         * passwordEncrypted));
-         * byte[] contraHash = DigestGenerator.sha256(contra);
-         * if (usuario.equals(this.user) && Arrays.equals(contraHash, this.password)) {
-         * this.dataOutputStream.writeUTF("OK");
-         * System.out.println("Usuario y contraseña correctos");
-         * } else {
-         * this.dataOutputStream.writeUTF("ERROR");
-         * this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
-         * System.out.println("Usuario o contraseña incorrectos");
-         * }
          * 
          * byte[] consultaEncrypted = this.dataInputStream.readAllBytes();
          * System.out.println("Consulta recibida");
@@ -132,6 +169,7 @@ public class SocketHandler extends Thread {
 
     private void shareDiffieHellmanValues()
             throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException {
+       
         BigInteger x = KeyManager.generateX(P);
         BigInteger gX = G.modPow(x, P);
         iv = KeyManager.generateIV();
@@ -142,6 +180,9 @@ public class SocketHandler extends Thread {
         byte[] gXByte = gX.toByteArray();
 
         int totalLength = gByte.length + pByte.length + gXByte.length;
+        System.out.println("Bytes in G: " + gByte.length);
+        System.out.println("Bytes in P: " + pByte.length);
+        System.out.println("Bytes in gX: " + gXByte.length);
 
         // Crear el arreglo de bytes con la longitud total
         this.dataOutputStream.write(gByte);
@@ -154,24 +195,32 @@ public class SocketHandler extends Thread {
         System.out.println("IV enviado");
 
         byte[] conc = new byte[totalLength];
+        
 
         // Copiar los bytes de cada arreglo en el arreglo conc
         System.arraycopy(gByte, 0, conc, 0, gByte.length);
         System.arraycopy(pByte, 0, conc, gByte.length, pByte.length);
         System.arraycopy(gXByte, 0, conc, gByte.length + pByte.length, gXByte.length);
 
-        byte[] cyphered_dh_values = CryptoUtils.firmar(KeyManager.privateK, conc);
+        byte[] cyphered_dh_values = CryptoUtils.firmar(privateKey, conc);
+        System.out.println("Bytes in firma: " + cyphered_dh_values.length);
 
         this.dataOutputStream.write(cyphered_dh_values);
         System.out.println("Valores DH firmados enviados");
-        String response = this.dataInputStream.readUTF();
-        if (!response.equals("OK")) {
-            throw new IOException("Invalid response");
-        }
-        BigInteger gY = new BigInteger(this.dataInputStream.readAllBytes());
+
+        
+        
+       
+        byte[] gYNum = new byte[129];
+        this.dataInputStream.read(gYNum);
+      
         System.out.println("Gy recibido");
 
+       
+        BigInteger  gY=  new BigInteger(1, gYNum);
+
         z = gY.modPow(x, P);
+         
 
     }
 /*

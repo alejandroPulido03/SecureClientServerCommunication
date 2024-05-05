@@ -4,7 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
+
 import java.security.SignatureException;
 
 //SERVIDOR
