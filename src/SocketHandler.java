@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -86,7 +85,7 @@ public class SocketHandler extends Thread {
         byte[] retoFirmado = CryptoUtils.firmar(privateKey, challenge);
         endTime = System.nanoTime();
         System.out.println("Firma generada");
-        System.out.println("Tiempo generación de firma: " + (endTime - startTime)/1000000.0 + " milisegundos.");
+        System.out.println("Tiempo generación de firma: " + (endTime - startTime) / 1000000.0 + " milisegundos.");
         this.dataOutputStream.write(retoFirmado);
         this.dataOutputStream.write(privateKey.getEncoded());
         System.out.println("Reto firmado enviado");
@@ -97,6 +96,7 @@ public class SocketHandler extends Thread {
         }
 
         shareDiffieHellmanValues();
+
         byte[] zBytes = z.toByteArray();
         // Dividir zBytes en dos partes de 256 bits
         byte[] keyForEncryption = Arrays.copyOfRange(zBytes, 0, 32); // Primeros 32
@@ -138,15 +138,16 @@ public class SocketHandler extends Thread {
         System.out.println("Digest recibido");
 
         startTime = System.nanoTime();
-        String consulta = new String(CryptoUtils.descifrarSimetrico(K_AB1, consultaEncrypted,iv));
+        String consulta = new String(CryptoUtils.descifrarSimetrico(K_AB1, consultaEncrypted, iv));
         endTime = System.nanoTime();
-        System.out.println("Tiempo para decifrar consulta: " + (endTime - startTime)/1000000.0 + " milisegundos.");
+        System.out.println("Tiempo para decifrar consulta: " + (endTime - startTime) / 1000000.0 + " milisegundos.");
         startTime = System.nanoTime();
         byte[] verificandoConsulta = DigestGenerator.Hmac(consulta, K_AB2);
         if (Arrays.equals(verificandoConsulta, consultaDigest)) {
             endTime = System.nanoTime();
             System.err.println("hay integridad");
-            System.out.println("Tiempo verificacion codigo de autenticacion: " + (endTime - startTime)/1000000.0 + " milisegundos.");
+            System.out.println("Tiempo verificacion codigo de autenticacion: " + (endTime - startTime) / 1000000.0
+                    + " milisegundos.");
             int numero = Integer.parseInt(consulta);
             int resultado = numero - 1;
             String respuesta = Integer.toString(resultado);
@@ -161,8 +162,8 @@ public class SocketHandler extends Thread {
         }
         if (response.equals("OK")) {
             System.out.println("consulta finalizada con exito");
-           
-        }else{
+
+        } else {
             throw new IOException("Invalid response");
         }
 
@@ -187,6 +188,7 @@ public class SocketHandler extends Thread {
         System.out.println("G enviado");
         this.dataOutputStream.write(pByte);
         System.out.println("P enviado");
+        this.dataOutputStream.writeInt(gXByte.length);
         this.dataOutputStream.write(gXByte);
         System.out.println("GX enviado");
         this.dataOutputStream.write(iv);
@@ -206,7 +208,7 @@ public class SocketHandler extends Thread {
         System.out.println("Valores DH firmados enviados");
         this.dataInputStream.readUTF();
 
-        byte[] gYNum = new byte[129];
+        byte[] gYNum = new byte[this.dataInputStream.readInt()];
         this.dataInputStream.read(gYNum);
 
         System.out.println("Gy recibido");
@@ -216,12 +218,11 @@ public class SocketHandler extends Thread {
         z = gY.modPow(x, P);
 
     }
-    /*
-     * private void pong() throws IOException {
-     * this.dataOutputStream.writeUTF("pong");
-     * System.out.println("Client says: " + this.dataInputStream.readUTF());
-     * }
-     */
+
+    private void pong() throws IOException {
+        this.dataOutputStream.writeUTF("pong");
+        System.out.println("Client says: " + this.dataInputStream.readUTF());
+    }
 
     @Override
     public void run() {

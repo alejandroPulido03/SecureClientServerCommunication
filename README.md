@@ -1,18 +1,42 @@
-## Getting Started
+# Caso 3 Infraestructura computacional
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+## Integrantes
 
-## Folder Structure
+-   Gabriela García Suarez – 202210869
+-   François Morales Segura – 202211168
+-   Alejandro Pulido Bonilla – 202215711
 
-The workspace contains two folders by default, where:
+### Ejecución
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+Para ejecutar el programa, primero se debe compilar sobre la versión de Java correcta con el siguiente comando (Sobre la carpeta raíz del proyecto):
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+```sh
+javac -d bin ./src/*
+```
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+Luego, para ejecutar el programa, hay 3 modos de ejecución:
 
-## Dependency Management
+1. Modo servidor:
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+```sh
+    java -cp bin Channel server <PUERTO>
+```
+
+2. Modo cliente:
+
+```sh
+    java -cp bin Channel client <IP> <PUERTO> <NUMERO DE CLIENTES>
+```
+
+3. Modo cliente y servidor:
+
+```sh
+    java -cp bin Channel both <IP> <PUERTO> <NUMERO DE CLIENTES>
+```
+
+### Consideraciones
+
+-   La carpeta `bin` contiene los archivos compilados en Java 11 con el openjdk version "11.0.18"
+-   El servidor solo puede escuchar de direcciones IP del loopback (127.0.0.1 a 127.255.255.255) por lo que se debe ejecutar con alguna de estas direcciones IP
+-   El servidor crea delegados conforme se conectan clientes, por lo que no es necesario declarar el número de delegados
+-   El servidor escucha indefinidamente, por lo que se pueden ejecutar múltiples clientes en varios terminales

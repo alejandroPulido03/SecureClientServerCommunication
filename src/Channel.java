@@ -25,10 +25,17 @@ public class Channel {
         if (args[0].equals("server")) {
             channel.initServer(Integer.parseInt(args[1]));
         } else if (args[0].equals("client")) {
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < Integer.parseInt(args[3]); i++) {
                 channel.handleRequest(args[1], Integer.parseInt(args[2]));
             }
-        } else {
+        } else if (args[0].equals("dual_mode")) {
+            channel.initServer(Integer.parseInt(args[2]));
+            for (int i = 0; i < Integer.parseInt(args[3]); i++) {
+                channel.handleRequest(args[1], Integer.parseInt(args[2]));
+            }
+        }
+        
+        else {
             System.out.println("Invalid arguments");
         }
     }
