@@ -23,6 +23,8 @@ public class RequestHandler extends Thread {
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
     private byte[] challenge;
+    long startTime, endTime;
+    long startTime2, endTime2;
 
     public RequestHandler(String host, int port) throws IOException {
         this.socket = new Socket(host, port);
@@ -104,11 +106,14 @@ public class RequestHandler extends Thread {
         System.arraycopy(gByte, 0, conc, 0, gByte.length);
         System.arraycopy(pByte, 0, conc, gByte.length, pByte.length);
         System.arraycopy(gXByte, 0, conc, gByte.length + pByte.length, gXByte.length);
-       
+        
+        startTime = System.nanoTime();
         boolean revisoValores = CryptoUtils.verificarFirma(publicKey,  conc,firmaCripto);
+        endTime = System.nanoTime();
         if (revisoValores) {
             this.dataOutputStream.writeUTF("OK");
             System.out.println("Firma correcta de valores");
+            System.out.println("Tiempo para verificar firma: " + (endTime - startTime)/1000000.0 + " milisegundos.");
         } else {
             this.dataOutputStream.writeUTF("ERROR");
             this.dataOutputStream.writeUTF("FIN DE LA COMUNICACION");
@@ -124,8 +129,9 @@ public class RequestHandler extends Thread {
         BigInteger gX = new BigInteger(gXByte);
         
         
-
+        startTime = System.nanoTime();
         BigInteger gY = g.modPow(x, p);
+        endTime = System.nanoTime();
         
 
         byte[] gYByte = gY.toByteArray();
@@ -134,6 +140,7 @@ public class RequestHandler extends Thread {
         // MANDO GY ES LO ULTIMO QUE MANDA EL CLIENTE
         this.dataOutputStream.write(gYByte);
         System.out.println("Gy enviado");
+        System.out.println("Tiempo para Gy: " + (endTime - startTime)/1000000.0 + " milisegundos.");
       
 
       BigInteger z = gX.modPow(x, p);
@@ -175,13 +182,20 @@ public class RequestHandler extends Thread {
      Random rand = new Random();
         int numeroAleatorio = rand.nextInt(100) + 1;  // Genera un número entre 1 y 100
         System.out.println("Número aleatorio entre 1 y 100: " + numeroAleatorio);
+        
+        startTime = System.nanoTime();
         byte[] a = CryptoUtils.cifrarSimetrico(K_AB1, String.valueOf(numeroAleatorio), iv);
-       
+        endTime = System.nanoTime();
+
+        startTime2 = System.nanoTime();
         byte[] b= DigestGenerator.Hmac(String.valueOf(numeroAleatorio), K_AB2);
-    
+        endTime2 = System.nanoTime();
+
      this.dataOutputStream.write(a);
       this.dataOutputStream.write(b);
       System.out.println("Consulta enviada");
+      System.out.println("Tiempo cifrado consulta: " + (endTime - startTime)/1000000.0 + " milisegundos.");
+        System.out.println("Tiempo generar codigo de autenticacion: " + (endTime2 - startTime2)/1000000.0 + " milisegundos.");
 
       byte[] rtaEncrypted = new byte[32];
       this.dataInputStream.read(rtaEncrypted);
