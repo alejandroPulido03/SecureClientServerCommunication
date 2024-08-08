@@ -1,42 +1,38 @@
-# Caso 3 Infraestructura computacional
+# SecureClientServerCommunication
 
-## Integrantes
+This project was developed for the computational infrastructure class. The project simulate the communication between a server and several clients, using sockets to simulate the communication and a provided secure communication protocol
 
--   Gabriela García Suarez – 202210869
--   François Morales Segura – 202211168
--   Alejandro Pulido Bonilla – 202215711
+### Execution
 
-### Ejecución
-
-Para ejecutar el programa, primero se debe compilar sobre la versión de Java correcta con el siguiente comando (Sobre la carpeta raíz del proyecto):
+To run the program, first it must be compiled on the correct Java version with the following command (from the project root folder):
 
 ```sh
 javac -d bin ./src/*
 ```
 
-Luego, para ejecutar el programa, hay 3 modos de ejecución:
+Then, to run the program, there are 3 execution modes:
 
-1. Modo servidor:
-
-```sh
-    java -cp bin Channel server <PUERTO>
-```
-
-2. Modo cliente:
+1. Server mode:
 
 ```sh
-    java -cp bin Channel client <IP> <PUERTO> <NUMERO DE CLIENTES>
+    java -cp bin Channel server <PORT>
 ```
 
-3. Modo cliente y servidor:
+2. Client mode:
 
 ```sh
-    java -cp bin Channel both <IP> <PUERTO> <NUMERO DE CLIENTES>
+    java -cp bin Channel client <IP> <PORT> <NUMBER OF CLIENTS>
 ```
 
-### Consideraciones
+3. Client and server mode:
 
--   La carpeta `bin` contiene los archivos compilados en Java 11 con el openjdk version "11.0.18"
--   El servidor solo puede escuchar de direcciones IP del loopback (127.0.0.1 a 127.255.255.255) por lo que se debe ejecutar con alguna de estas direcciones IP
--   El servidor crea delegados conforme se conectan clientes, por lo que no es necesario declarar el número de delegados
--   El servidor escucha indefinidamente, por lo que se pueden ejecutar múltiples clientes en varios terminales
+```sh
+    java -cp bin Channel both <IP> <PORT> <NUMBER OF CLIENTS>
+```
+
+### Considerations
+
+- Java 11 compatible with openjdk version "11.0.18".
+- The server can only listen to loopback IP addresses (127.0.0.1 to 127.255.255.255), so it must be executed with one of these IP addresses.
+- The server creates delegates as clients connect, so it is not necessary to declare the number of delegates.
+- The server listens indefinitely, so multiple clients can be executed in various terminals.
